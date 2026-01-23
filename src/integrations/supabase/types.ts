@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      badges: {
+        Row: {
+          code: string
+          condition_type: string
+          condition_value: number
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          condition_type: string
+          condition_value?: number
+          created_at?: string
+          description: string
+          emoji: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          condition_type?: string
+          condition_value?: number
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       creation_likes: {
         Row: {
           created_at: string
@@ -97,13 +130,52 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_emailed: boolean
+          is_read: boolean
+          message: string
+          related_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_emailed?: boolean
+          is_read?: boolean
+          message: string
+          related_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_emailed?: boolean
+          is_read?: boolean
+          message?: string
+          related_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
+          email_notifications: boolean
           full_name: string | null
           id: string
           is_premium: boolean
+          like_notifications: boolean
+          reminder_notifications: boolean
           stripe_customer_id: string | null
           subscription_end: string | null
           updated_at: string
@@ -112,9 +184,12 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email_notifications?: boolean
           full_name?: string | null
           id?: string
           is_premium?: boolean
+          like_notifications?: boolean
+          reminder_notifications?: boolean
           stripe_customer_id?: string | null
           subscription_end?: string | null
           updated_at?: string
@@ -123,9 +198,12 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email_notifications?: boolean
           full_name?: string | null
           id?: string
           is_premium?: boolean
+          like_notifications?: boolean
+          reminder_notifications?: boolean
           stripe_customer_id?: string | null
           subscription_end?: string | null
           updated_at?: string
@@ -170,6 +248,74 @@ export type Database = {
             columns: ["creation_id"]
             isOneToOne: false
             referencedRelation: "creations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          content: string
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          is_premium: boolean
+          name: string
+          occasion: string | null
+          tone: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          description: string
+          emoji?: string
+          id?: string
+          is_premium?: boolean
+          name: string
+          occasion?: string | null
+          tone?: string
+          type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          is_premium?: boolean
+          name?: string
+          occasion?: string | null
+          tone?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
             referencedColumns: ["id"]
           },
         ]
