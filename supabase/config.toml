@@ -31,3 +31,7 @@ verify_jwt = false
 [functions.process-scheduled-emails]
 enabled = true
 verify_jwt = false
+
+[functions.generate-chapter-audio]
+enabled = true
+verify_jwt = false
