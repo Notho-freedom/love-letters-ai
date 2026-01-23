@@ -30,6 +30,11 @@ interface StoryBuilderProps {
   tone: string;
   occasion: string;
   details: string;
+  genre: string;
+  era: string;
+  writingStyle: string;
+  pov: string;
+  intensity: string;
   onComplete: (chapters: Chapter[]) => void;
 }
 
@@ -38,6 +43,11 @@ const StoryBuilder = ({
   tone,
   occasion,
   details,
+  genre,
+  era,
+  writingStyle,
+  pov,
+  intensity,
   onComplete,
 }: StoryBuilderProps) => {
   const [step, setStep] = useState<"structure" | "generate">("structure");
@@ -120,16 +130,85 @@ const StoryBuilder = ({
         .map((c) => c.title)
         .join(", ");
 
+      // Build detailed prompt with all personalization options
+      const genreLabels: Record<string, string> = {
+        "romance-contemporaine": "romance contemporaine réaliste",
+        "romance-historique": "romance historique passionnée",
+        "fantasy-romance": "fantasy romantique avec éléments magiques",
+        "romance-paranormale": "romance paranormale (surnaturel)",
+        "scifi-romance": "romance science-fiction futuriste",
+        "romance-epistolaire": "romance épistolaire (lettres et correspondances)",
+        "slow-burn": "slow burn (tension romantique progressive)",
+        "enemies-to-lovers": "enemies-to-lovers (de la rivalité à l'amour)",
+        "second-chance": "seconde chance (retrouvailles amoureuses)",
+        "conte-fees": "conte de fées romantique",
+      };
+
+      const eraLabels: Record<string, string> = {
+        "antiquite": "l'Antiquité (Grèce, Rome, Égypte)",
+        "medieval": "l'époque médiévale (châteaux, chevaliers)",
+        "renaissance": "la Renaissance italienne",
+        "18e-siecle": "le XVIIIe siècle (bals, élégance)",
+        "19e-siecle": "le XIXe siècle romantique",
+        "belle-epoque": "la Belle Époque (Paris 1890-1914)",
+        "annees-folles": "les Années folles (1920s, jazz)",
+        "mid-century": "les années 50-60",
+        "present": "l'époque actuelle",
+        "futur-proche": "un futur proche (2050-2100)",
+        "futur-lointain": "un futur lointain (civilisations galactiques)",
+        "atemporel": "un cadre atemporel et universel",
+      };
+
+      const styleLabels: Record<string, string> = {
+        "immersif": "immersif avec descriptions riches et ambiances détaillées",
+        "cinematographique": "cinématographique avec scènes visuelles et rythme de film",
+        "poetique": "poétique et lyrique avec métaphores",
+        "minimaliste": "minimaliste et épuré",
+        "dialogues": "centré sur les dialogues vifs",
+        "intimiste": "intimiste avec pensées intérieures profondes",
+      };
+
+      const povLabels: Record<string, string> = {
+        "first-hero": "à la première personne du protagoniste",
+        "first-alternating": "à la première personne alternée entre les deux amoureux",
+        "third": "à la troisième personne omnisciente",
+        "third-limited": "à la troisième personne focalisée sur un personnage",
+        "epistolary": "sous forme épistolaire (lettres, journaux)",
+      };
+
+      const intensityLabels: Record<string, string> = {
+        "tender": "tendre et délicat",
+        "moderate": "équilibré et romantique",
+        "passionate": "passionné avec émotions intenses",
+        "steamy": "sensuel avec tension romantique",
+      };
+
       const prompt = `
-Écris le chapitre "${chapter.title}" (chapitre ${chapter.number} sur ${chapters.length}) d'une histoire d'amour pour ${recipientName}.
+Tu es un auteur de fiction romantique talentueux. Écris le chapitre "${chapter.title}" (chapitre ${chapter.number} sur ${chapters.length}) d'une histoire d'amour dédiée à ${recipientName}.
 
-${previousChapters ? `Résumé des chapitres précédents:\n${previousChapters}\n\n` : ""}
-${upcomingChapters ? `Chapitres à venir: ${upcomingChapters}\n\n` : ""}
-Ton: ${tone}
-${occasion ? `Occasion: ${occasion}` : ""}
-${details ? `Détails personnels: ${details}` : ""}
+=== PARAMÈTRES DE L'ŒUVRE ===
+• Genre littéraire: ${genreLabels[genre] || genre}
+• Époque: ${eraLabels[era] || era}
+• Style d'écriture: ${styleLabels[writingStyle] || writingStyle}
+• Point de vue narratif: ${povLabels[pov] || pov}
+• Intensité romantique: ${intensityLabels[intensity] || intensity}
+• Ton: ${tone}
+${occasion && occasion !== "none" ? `• Occasion: ${occasion}` : ""}
 
-Le chapitre doit être cohérent avec l'histoire, bien développé et touchant. Écris environ 300-500 mots.
+=== CONTEXTE NARRATIF ===
+${previousChapters ? `Résumé des chapitres précédents:\n${previousChapters}\n` : "C'est le premier chapitre de l'histoire."}
+${upcomingChapters ? `\nChapitres à venir: ${upcomingChapters}` : ""}
+
+=== ÉLÉMENTS PERSONNELS ===
+${details || "Aucun détail personnel fourni - sois créatif avec l'histoire."}
+
+=== INSTRUCTIONS ===
+1. Respecte scrupuleusement le genre, l'époque et le style demandés
+2. Maintiens la cohérence narrative avec les chapitres précédents
+3. Crée de l'anticipation pour les chapitres suivants
+4. Le chapitre doit faire environ 400-600 mots
+5. Commence directement par le texte du chapitre (pas de titre)
+6. Adapte le vocabulaire et les descriptions à l'époque choisie
       `.trim();
 
       const response = await fetch(
