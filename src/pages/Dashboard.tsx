@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -7,11 +7,11 @@ import {
   Edit3,
   Trash2,
   Volume2,
-  Send,
-  Calendar,
   LogOut,
   User,
   Clock,
+  Trophy,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import NotificationsPanel from "@/components/NotificationsPanel";
+import BadgesDisplay from "@/components/BadgesDisplay";
 
 interface Creation {
   id: string;
@@ -36,9 +38,21 @@ interface Creation {
 const Dashboard = () => {
   const [creations, setCreations] = useState<Creation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBadges, setShowBadges] = useState(false);
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Show success toast if coming from Stripe
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast({
+        title: "Bienvenue Premium ! 💎",
+        description: "Votre abonnement est maintenant actif.",
+      });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -134,7 +148,8 @@ const Dashboard = () => {
             <span className="text-xl font-display text-foreground">LoveSpace</span>
           </a>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <NotificationsPanel />
             <div className="flex items-center gap-2 text-muted-foreground">
               <User className="w-5 h-5" />
               <span className="hidden sm:inline">{user?.email}</span>
@@ -162,14 +177,42 @@ const Dashboard = () => {
               {creations.length} création{creations.length !== 1 ? "s" : ""} d'amour
             </p>
           </div>
-          <Button
-            onClick={() => navigate("/create")}
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Nouvelle création
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/templates")}
+            >
+              <FileText className="w-5 h-5 mr-2" />
+              Templates
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowBadges(!showBadges)}
+            >
+              <Trophy className="w-5 h-5 mr-2" />
+              Badges
+            </Button>
+            <Button
+              onClick={() => navigate("/create")}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Nouvelle création
+            </Button>
+          </div>
         </div>
+
+        {/* Badges Section */}
+        {showBadges && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8 bg-card/50 backdrop-blur border border-border/50 rounded-2xl p-6"
+          >
+            <BadgesDisplay />
+          </motion.div>
+        )}
 
         {/* Creations Grid */}
         {creations.length === 0 ? (

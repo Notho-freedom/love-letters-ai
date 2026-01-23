@@ -11,6 +11,7 @@ import Create from "./pages/Create";
 import Edit from "./pages/Edit";
 import Gallery from "./pages/Gallery";
 import Pricing from "./pages/Pricing";
+import Templates from "./pages/Templates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/edit/:id" element={<Edit />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/templates" element={<Templates />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
