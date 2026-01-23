@@ -137,6 +137,37 @@ const Edit = () => {
     }
   };
 
+  // Browser TTS fallback function
+  const useBrowserTTS = (text: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!('speechSynthesis' in window)) {
+        reject(new Error("TTS non supporté par le navigateur"));
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fr-FR';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+      
+      // Find a French female voice if available
+      const voices = speechSynthesis.getVoices();
+      const frenchVoice = voices.find(v => v.lang.startsWith('fr') && v.name.toLowerCase().includes('female')) 
+        || voices.find(v => v.lang.startsWith('fr'))
+        || voices[0];
+      
+      if (frenchVoice) {
+        utterance.voice = frenchVoice;
+      }
+
+      // For browser TTS, we can't get an audio file, so we'll just play directly
+      utterance.onend = () => resolve('browser-tts');
+      utterance.onerror = (e) => reject(e);
+      
+      speechSynthesis.speak(utterance);
+    });
+  };
+
   const handleGenerateAudio = async () => {
     setGeneratingAudio(true);
     try {
@@ -152,6 +183,25 @@ const Edit = () => {
         }
       );
 
+      const contentType = response.headers.get('content-type');
+      
+      // Check if response is JSON (fallback signal)
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        
+        if (data.useBrowserTTS) {
+          console.log("Using browser TTS fallback");
+          // Use browser's built-in TTS
+          await useBrowserTTS(content);
+          setAudioUrl('browser-tts');
+          toast({
+            title: "Audio via navigateur 🎵",
+            description: "Lecture avec la voix du système.",
+          });
+          return;
+        }
+      }
+
       if (!response.ok) {
         throw new Error("Erreur lors de la génération audio");
       }
@@ -166,17 +216,40 @@ const Edit = () => {
       });
     } catch (error) {
       console.error("Audio generation error:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer l'audio.",
-        variant: "destructive",
-      });
+      
+      // Ultimate fallback: try browser TTS
+      try {
+        await useBrowserTTS(content);
+        setAudioUrl('browser-tts');
+        toast({
+          title: "Audio via navigateur 🎵",
+          description: "Lecture avec la voix du système.",
+        });
+      } catch {
+        toast({
+          title: "Erreur",
+          description: "Impossible de générer l'audio.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setGeneratingAudio(false);
     }
   };
 
   const togglePlayAudio = () => {
+    // Handle browser TTS case
+    if (audioUrl === 'browser-tts') {
+      if (isPlaying) {
+        speechSynthesis.cancel();
+        setIsPlaying(false);
+      } else {
+        useBrowserTTS(content).then(() => setIsPlaying(false));
+        setIsPlaying(true);
+      }
+      return;
+    }
+
     if (!audioRef.current || !audioUrl) return;
 
     if (isPlaying) {
