@@ -11,3 +11,15 @@ verify_jwt = false
 [functions.send-love-email]
 enabled = true
 verify_jwt = true
+
+[functions.create-checkout]
+enabled = true
+verify_jwt = true
+
+[functions.check-subscription]
+enabled = true
+verify_jwt = true
+
+[functions.customer-portal]
+enabled = true
+verify_jwt = true

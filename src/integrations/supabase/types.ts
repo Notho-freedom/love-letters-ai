@@ -14,13 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      creation_likes: {
+        Row: {
+          created_at: string
+          creation_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creation_likes_creation_id_fkey"
+            columns: ["creation_id"]
+            isOneToOne: false
+            referencedRelation: "creations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creations: {
         Row: {
           audio_url: string | null
           content: string
           created_at: string
           id: string
+          is_public: boolean
           is_sent: boolean
+          likes_count: number
           occasion: string | null
           recipient_email: string | null
           recipient_name: string
@@ -35,7 +66,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_public?: boolean
           is_sent?: boolean
+          likes_count?: number
           occasion?: string | null
           recipient_email?: string | null
           recipient_name: string
@@ -50,7 +83,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_public?: boolean
           is_sent?: boolean
+          likes_count?: number
           occasion?: string | null
           recipient_email?: string | null
           recipient_name?: string
@@ -68,6 +103,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_premium: boolean
+          stripe_customer_id: string | null
+          subscription_end: string | null
           updated_at: string
           user_id: string
         }
@@ -76,6 +114,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_premium?: boolean
+          stripe_customer_id?: string | null
+          subscription_end?: string | null
           updated_at?: string
           user_id: string
         }
@@ -84,6 +125,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_premium?: boolean
+          stripe_customer_id?: string | null
+          subscription_end?: string | null
           updated_at?: string
           user_id?: string
         }

@@ -7,10 +7,8 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { label: "Créer", href: "#create" },
-    { label: "Exemples", href: "#examples" },
-    { label: "Tarifs", href: "#pricing" },
-    { label: "À propos", href: "#about" },
+    { label: "Galerie", href: "/gallery" },
+    { label: "Tarifs", href: "/pricing" },
   ];
 
   return (

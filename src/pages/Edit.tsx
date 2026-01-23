@@ -15,6 +15,8 @@ import {
   Download,
   Copy,
   Check,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ const Edit = () => {
   const [recipientName, setRecipientName] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [type, setType] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [scheduledTime, setScheduledTime] = useState("12:00");
   const [loading, setLoading] = useState(true);
@@ -87,6 +90,7 @@ const Edit = () => {
       setRecipientName(data.recipient_name);
       setRecipientEmail(data.recipient_email || "");
       setType(data.type);
+      setIsPublic(data.is_public || false);
       if (data.audio_url) {
         setAudioUrl(data.audio_url);
       }
@@ -112,6 +116,7 @@ const Edit = () => {
           content,
           recipient_name: recipientName,
           recipient_email: recipientEmail || null,
+          is_public: isPublic,
         })
         .eq("id", id);
 
@@ -499,6 +504,50 @@ const Edit = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Public Sharing */}
+            <div className="bg-card/50 backdrop-blur border border-border/50 rounded-2xl p-6">
+              <h3 className="font-display text-lg text-foreground mb-4">
+                Partage public
+              </h3>
+              <button
+                onClick={() => setIsPublic(!isPublic)}
+                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                  isPublic
+                    ? "border-primary bg-primary/10"
+                    : "border-border/50 hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {isPublic ? (
+                    <Globe className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div className="text-left">
+                    <p className="font-medium text-foreground">
+                      {isPublic ? "Public" : "Privé"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPublic
+                        ? "Visible dans la galerie"
+                        : "Visible uniquement par vous"}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    isPublic ? "bg-primary" : "bg-muted"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white shadow transition-transform mt-0.5 ${
+                      isPublic ? "translate-x-6 ml-0.5" : "translate-x-0.5"
+                    }`}
+                  />
+                </div>
+              </button>
             </div>
 
             {/* Send Options */}
