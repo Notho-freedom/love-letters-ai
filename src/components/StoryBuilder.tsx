@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -11,11 +11,22 @@ import {
   Loader2,
   GripVertical,
   Edit3,
+  Wand2,
+  ListPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { getChapterSuggestions, getQuickChapterSets } from "@/hooks/useChapterSuggestions";
 
 interface Chapter {
   id: string;
@@ -51,15 +62,71 @@ const StoryBuilder = ({
   onComplete,
 }: StoryBuilderProps) => {
   const [step, setStep] = useState<"structure" | "generate">("structure");
-  const [chapters, setChapters] = useState<Chapter[]>([
-    { id: crypto.randomUUID(), number: 1, title: "Prologue", content: "", isGenerated: false },
-    { id: crypto.randomUUID(), number: 2, title: "La rencontre", content: "", isGenerated: false },
-    { id: crypto.randomUUID(), number: 3, title: "L'éveil des sentiments", content: "", isGenerated: false },
-  ]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Get suggestions based on current genre and era
+  const chapterSuggestions = getChapterSuggestions(genre, era);
+  const quickSets = getQuickChapterSets(genre);
+
+  // Initialize chapters based on genre suggestions
+  useEffect(() => {
+    if (chapters.length === 0) {
+      const defaultChapters = chapterSuggestions.slice(0, 5).map((suggestion, index) => ({
+        id: crypto.randomUUID(),
+        number: index + 1,
+        title: suggestion.title,
+        content: "",
+        isGenerated: false,
+      }));
+      setChapters(defaultChapters);
+    }
+  }, []);
+
+  // Update chapter suggestions when genre changes
+  useEffect(() => {
+    if (chapters.length > 0 && !chapters.some(c => c.isGenerated)) {
+      const newChapters = chapterSuggestions.slice(0, chapters.length).map((suggestion, index) => ({
+        id: chapters[index]?.id || crypto.randomUUID(),
+        number: index + 1,
+        title: suggestion.title,
+        content: "",
+        isGenerated: false,
+      }));
+      setChapters(newChapters);
+    }
+  }, [genre]);
+
+  const applyQuickSet = (chapterTitles: string[]) => {
+    const newChapters = chapterTitles.map((title, index) => ({
+      id: crypto.randomUUID(),
+      number: index + 1,
+      title,
+      content: "",
+      isGenerated: false,
+    }));
+    setChapters(newChapters);
+    toast({
+      title: "Structure appliquée ! 📚",
+      description: `${chapterTitles.length} chapitres ajoutés.`,
+    });
+  };
+
+  const addSuggestedChapter = (title: string) => {
+    setChapters([
+      ...chapters,
+      {
+        id: crypto.randomUUID(),
+        number: chapters.length + 1,
+        title,
+        content: "",
+        isGenerated: false,
+      },
+    ]);
+  };
 
   const addChapter = () => {
     const newNumber = chapters.length + 1;
@@ -315,9 +382,37 @@ ${details || "Aucun détail personnel fourni - sois créatif avec l'histoire."}
               <h3 className="text-lg font-display text-foreground">
                 Définissez vos chapitres
               </h3>
-              <span className="text-sm text-muted-foreground">
-                {chapters.length} chapitre{chapters.length > 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {chapters.length} chapitre{chapters.length > 1 ? "s" : ""}
+                </span>
+                {/* Quick sets dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <ListPlus className="w-4 h-4 mr-2" />
+                      Structures
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Structures prédéfinies</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {quickSets.map((set) => (
+                      <DropdownMenuItem
+                        key={set.name}
+                        onClick={() => applyQuickSet(set.chapters)}
+                      >
+                        <div>
+                          <span className="font-medium">{set.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({set.chapters.length} ch.)
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -386,13 +481,36 @@ ${details || "Aucun détail personnel fourni - sois créatif avec l'histoire."}
               ))}
             </div>
 
+            {/* Suggested chapters */}
+            <div className="mt-4">
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Wand2 className="w-3 h-3" />
+                Suggestions basées sur le genre "{genre.replace(/-/g, ' ')}"
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {chapterSuggestions
+                  .filter((s) => !chapters.some((c) => c.title === s.title))
+                  .slice(0, 4)
+                  .map((suggestion) => (
+                    <button
+                      key={suggestion.title}
+                      onClick={() => addSuggestedChapter(suggestion.title)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-dashed border-primary/50 text-primary hover:bg-primary/10 transition-colors"
+                      title={suggestion.description}
+                    >
+                      + {suggestion.title}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
             <Button
               variant="outline"
               onClick={addChapter}
-              className="w-full border-dashed"
+              className="w-full border-dashed mt-4"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Ajouter un chapitre
+              Ajouter un chapitre personnalisé
             </Button>
 
             <Button
