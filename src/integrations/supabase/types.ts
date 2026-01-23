@@ -252,6 +252,47 @@ export type Database = {
           },
         ]
       }
+      story_chapters: {
+        Row: {
+          chapter_number: number
+          content: string | null
+          created_at: string
+          creation_id: string
+          id: string
+          is_generated: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_number: number
+          content?: string | null
+          created_at?: string
+          creation_id: string
+          id?: string
+          is_generated?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_number?: number
+          content?: string | null
+          created_at?: string
+          creation_id?: string
+          id?: string
+          is_generated?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_chapters_creation_id_fkey"
+            columns: ["creation_id"]
+            isOneToOne: false
+            referencedRelation: "creations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates: {
         Row: {
           content: string
