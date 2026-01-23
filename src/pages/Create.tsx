@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Heart,
   ArrowLeft,
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import StoryBuilder from "@/components/StoryBuilder";
+import StoryParametersPanel from "@/components/StoryParametersPanel";
 
 interface Chapter {
   id: string;
@@ -36,7 +37,7 @@ interface Chapter {
 const Create = () => {
   const [type, setType] = useState<string>("poem");
   const [recipientName, setRecipientName] = useState("");
-  const [occasion, setOccasion] = useState("");
+  const [occasion, setOccasion] = useState("none");
   const [tone, setTone] = useState("romantic");
   const [details, setDetails] = useState("");
   const [generatedContent, setGeneratedContent] = useState("");
@@ -49,6 +50,11 @@ const Create = () => {
   const [writingStyle, setWritingStyle] = useState("immersif");
   const [pov, setPov] = useState("third");
   const [intensity, setIntensity] = useState("moderate");
+  
+  // Audio options
+  const [enableAudio, setEnableAudio] = useState(false);
+  const [voiceGender, setVoiceGender] = useState("female");
+  const [narratorStyle, setNarratorStyle] = useState("warm");
 
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -237,7 +243,7 @@ const Create = () => {
   ];
 
   const occasionOptions = [
-    { value: "", label: "Aucune occasion particulière" },
+    { value: "none", label: "Aucune occasion particulière" },
     { value: "anniversaire", label: "Anniversaire" },
     { value: "saint-valentin", label: "Saint-Valentin" },
     { value: "mariage", label: "Mariage" },
@@ -245,59 +251,6 @@ const Create = () => {
     { value: "reconciliation", label: "Réconciliation" },
     { value: "declaration", label: "Déclaration d'amour" },
     { value: "quotidien", label: "Moment du quotidien" },
-  ];
-
-  // Story-specific options
-  const genreOptions = [
-    { value: "romance-contemporaine", label: "Romance contemporaine", emoji: "💑", description: "Amour moderne, réaliste" },
-    { value: "romance-historique", label: "Romance historique", emoji: "🏰", description: "Amours d'époque, passions intemporelles" },
-    { value: "fantasy-romance", label: "Fantasy romantique", emoji: "🧝", description: "Magie, royaumes enchantés" },
-    { value: "romance-paranormale", label: "Romance paranormale", emoji: "🌙", description: "Vampires, loups-garous, surnaturel" },
-    { value: "scifi-romance", label: "Romance sci-fi", emoji: "🚀", description: "Amour interstellaire, futuriste" },
-    { value: "romance-epistolaire", label: "Romance épistolaire", emoji: "✉️", description: "Lettres, messages, correspondances" },
-    { value: "slow-burn", label: "Slow Burn", emoji: "🔥", description: "Tension lente, désir croissant" },
-    { value: "enemies-to-lovers", label: "Enemies to Lovers", emoji: "⚔️", description: "De la haine à l'amour" },
-    { value: "second-chance", label: "Seconde chance", emoji: "🔄", description: "Retrouvailles, amours passées" },
-    { value: "conte-fees", label: "Conte de fées", emoji: "👑", description: "Princes, princesses, magie" },
-  ];
-
-  const eraOptions = [
-    { value: "antiquite", label: "Antiquité", emoji: "🏛️", description: "Grèce, Rome, Égypte ancienne" },
-    { value: "medieval", label: "Médiéval", emoji: "⚔️", description: "Chevaliers, châteaux, croisades" },
-    { value: "renaissance", label: "Renaissance", emoji: "🎨", description: "Art, passion, Italie" },
-    { value: "18e-siecle", label: "XVIIIe siècle", emoji: "👗", description: "Élégance, bals, intrigues" },
-    { value: "19e-siecle", label: "XIXe siècle", emoji: "🎩", description: "Romantisme, révolutions" },
-    { value: "belle-epoque", label: "Belle Époque", emoji: "🎭", description: "1890-1914, Paris bohème" },
-    { value: "annees-folles", label: "Années folles", emoji: "💃", description: "1920s, jazz, liberté" },
-    { value: "mid-century", label: "Années 50-60", emoji: "🚗", description: "Rock'n'roll, modernité" },
-    { value: "present", label: "Époque actuelle", emoji: "📱", description: "Monde contemporain" },
-    { value: "futur-proche", label: "Futur proche", emoji: "🌆", description: "2050-2100, technologie avancée" },
-    { value: "futur-lointain", label: "Futur lointain", emoji: "🌌", description: "Espace, civilisations galactiques" },
-    { value: "atemporel", label: "Atemporel", emoji: "✨", description: "Hors du temps, universel" },
-  ];
-
-  const writingStyleOptions = [
-    { value: "immersif", label: "Immersif & descriptif", description: "Descriptions riches, ambiances détaillées" },
-    { value: "cinematographique", label: "Cinématographique", description: "Scènes visuelles, rythme de film" },
-    { value: "poetique", label: "Poétique & lyrique", description: "Prose poétique, métaphores" },
-    { value: "minimaliste", label: "Minimaliste", description: "Épuré, essentiel, silences" },
-    { value: "dialogues", label: "Centré dialogues", description: "Échanges vifs, conversations" },
-    { value: "intimiste", label: "Intimiste", description: "Pensées intérieures, émotions profondes" },
-  ];
-
-  const povOptions = [
-    { value: "first-hero", label: "1ère personne (protagoniste)", description: "Je vis l'histoire" },
-    { value: "first-alternating", label: "1ère personne alternée", description: "Points de vue des deux amoureux" },
-    { value: "third", label: "3ème personne", description: "Narrateur omniscient" },
-    { value: "third-limited", label: "3ème personne limitée", description: "Focus sur un personnage" },
-    { value: "epistolary", label: "Épistolaire", description: "Lettres, journaux intimes" },
-  ];
-
-  const intensityOptions = [
-    { value: "tender", label: "Tendre & doux", emoji: "🌸", description: "Romantisme délicat" },
-    { value: "moderate", label: "Équilibré", emoji: "💕", description: "Romance classique" },
-    { value: "passionate", label: "Passionné", emoji: "🔥", description: "Désir intense, émotions fortes" },
-    { value: "steamy", label: "Sensuel", emoji: "💋", description: "Tension et sensualité" },
   ];
 
   if (authLoading) {
@@ -366,146 +319,29 @@ const Create = () => {
                   />
                 </div>
 
-                {/* Genre Selection */}
-                <div>
-                  <Label className="text-foreground mb-3 block">Genre littéraire</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {genreOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setGenre(option.value)}
-                        className={`p-3 rounded-xl border transition-all text-left ${
-                          genre === option.value
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border/50 hover:border-primary/50 text-muted-foreground"
-                        }`}
-                      >
-                        <span className="text-lg block mb-1">{option.emoji}</span>
-                        <span className="text-xs font-medium block">{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Era Selection */}
-                <div>
-                  <Label className="text-foreground mb-3 block">Époque</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                    {eraOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setEra(option.value)}
-                        className={`p-3 rounded-xl border transition-all text-left ${
-                          era === option.value
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border/50 hover:border-primary/50 text-muted-foreground"
-                        }`}
-                      >
-                        <span className="text-lg block mb-1">{option.emoji}</span>
-                        <span className="text-xs font-medium block truncate">{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Writing Style & POV Row */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-foreground mb-2 block">Style d'écriture</Label>
-                    <Select value={writingStyle} onValueChange={setWritingStyle}>
-                      <SelectTrigger className="bg-background/50 border-border/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {writingStyleOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {option.description}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-foreground mb-2 block">Point de vue narratif</Label>
-                    <Select value={pov} onValueChange={setPov}>
-                      <SelectTrigger className="bg-background/50 border-border/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {povOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Intensity */}
-                <div>
-                  <Label className="text-foreground mb-3 block">Intensité romantique</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {intensityOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setIntensity(option.value)}
-                        className={`p-3 rounded-xl border transition-all text-center ${
-                          intensity === option.value
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border/50 hover:border-primary/50 text-muted-foreground"
-                        }`}
-                      >
-                        <span className="text-xl block mb-1">{option.emoji}</span>
-                        <span className="text-sm font-medium block">{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tone & Occasion Row */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-foreground">Ton général</Label>
-                    <Select value={tone} onValueChange={setTone}>
-                      <SelectTrigger className="mt-2 bg-background/50 border-border/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {toneOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-foreground">Occasion spéciale</Label>
-                    <Select value={occasion} onValueChange={setOccasion}>
-                      <SelectTrigger className="mt-2 bg-background/50 border-border/50">
-                        <SelectValue placeholder="Choisir" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {occasionOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value || "none"}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                {/* Story Parameters Panel with dropdowns */}
+                <StoryParametersPanel
+                  genre={genre}
+                  setGenre={setGenre}
+                  era={era}
+                  setEra={setEra}
+                  writingStyle={writingStyle}
+                  setWritingStyle={setWritingStyle}
+                  pov={pov}
+                  setPov={setPov}
+                  intensity={intensity}
+                  setIntensity={setIntensity}
+                  tone={tone}
+                  setTone={setTone}
+                  occasion={occasion}
+                  setOccasion={setOccasion}
+                  enableAudio={enableAudio}
+                  setEnableAudio={setEnableAudio}
+                  voiceGender={voiceGender}
+                  setVoiceGender={setVoiceGender}
+                  narratorStyle={narratorStyle}
+                  setNarratorStyle={setNarratorStyle}
+                />
 
                 {/* Personal details */}
                 <div>
