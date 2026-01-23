@@ -12,6 +12,8 @@ import {
   Clock,
   Trophy,
   FileText,
+  BookOpen,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -294,6 +296,28 @@ const Dashboard = () => {
                     <Edit3 className="w-4 h-4 mr-1" />
                     Éditer
                   </Button>
+                  {creation.type === "story" && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/story/${creation.id}?mode=read`)}
+                        className="text-primary hover:text-primary"
+                        title="Mode lecture immersif"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/story/${creation.id}?mode=edit`)}
+                        className="text-accent hover:text-accent"
+                        title="Éditer les chapitres"
+                      >
+                        <Layers className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                   {creation.audio_url && (
                     <Button variant="ghost" size="icon" className="text-accent">
                       <Volume2 className="w-4 h-4" />
