@@ -1,1 +1,13 @@
 project_id = "pddqvauceahdzpubqtzw"
+
+[functions.generate-love-content]
+enabled = true
+verify_jwt = false
+
+[functions.text-to-speech]
+enabled = true
+verify_jwt = false
+
+[functions.send-love-email]
+enabled = true
+verify_jwt = true
