@@ -9,42 +9,81 @@ const corsHeaders = {
 
 const PREMIUM_PRICE_ID = "price_1SsZLv3x7zjrTOGvVYG8vqzB";
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    
-    if (!user?.email) {
-      throw new Error("Utilisateur non authentifié");
+    logStep("Function started");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      logStep("No authorization header");
+      return new Response(JSON.stringify({ error: "Non autorisé" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    logStep("Validating JWT");
+    
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      logStep("Invalid JWT", { error: claimsError?.message });
+      return new Response(JSON.stringify({ error: "Token invalide" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email as string;
+    
+    if (!userEmail) {
+      logStep("No email in claims");
+      return new Response(JSON.stringify({ error: "Email non disponible" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    logStep("User authenticated", { userId, email: userEmail });
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
     // Check if customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      logStep("Found existing customer", { customerId });
     }
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: PREMIUM_PRICE_ID,
@@ -55,20 +94,21 @@ serve(async (req) => {
       success_url: `${origin}/dashboard?success=true`,
       cancel_url: `${origin}/pricing?canceled=true`,
       metadata: {
-        user_id: user.id,
+        user_id: userId,
       },
     });
 
-    console.log("Checkout session created:", session.id);
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Checkout error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+    logStep("ERROR", { message: errorMessage });
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

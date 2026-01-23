@@ -7,14 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    logStep("Function started");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      logStep("No authorization header");
+      return new Response(JSON.stringify({ error: "Non autorisé" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -22,46 +35,65 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
     const token = authHeader.replace("Bearer ", "");
+    logStep("Validating JWT");
+    
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError || !userData.user) {
+      logStep("Invalid token", { error: userError?.message });
+      return new Response(JSON.stringify({ error: "Token invalide" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
+    if (!user.email) {
+      logStep("No email available");
+      return new Response(JSON.stringify({ error: "Email non disponible" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    logStep("User authenticated", { userId: user.id, email: user.email });
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found");
+      logStep("No Stripe customer found");
+      return new Response(JSON.stringify({ error: "Aucun abonnement trouvé" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const customerId = customers.data[0].id;
-    const origin = req.headers.get("origin") || "https://lovable.dev";
+    logStep("Found Stripe customer", { customerId });
 
+    const origin = req.headers.get("origin") || "https://lovable.dev";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/dashboard`,
     });
 
-    console.log("Portal session created:", portalSession.id);
+    logStep("Portal session created", { sessionId: portalSession.id, url: portalSession.url });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Portal error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });
